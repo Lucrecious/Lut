@@ -1,5 +1,9 @@
 extends Reference
 
+const QuickState = preload("res://src/lut/fsm/quick_state.gd")
+const QuickTransition = preload("res://src/lut/fsm/quick_transition.gd")
+const Decorator = preload("res://src/lut/fsm/decorator.gd")
+
 var global_state = null
 var state = null
 var object = null

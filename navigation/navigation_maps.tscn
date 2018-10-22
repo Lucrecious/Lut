@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://src/lut/navigation/navigation_maps.gd" type="Script" id=1]
+
+[node name="NavigationMaps" type="Node" index="0"]
+
+script = ExtResource( 1 )
+_sections_unfolded = [ "Cell" ]
+HAZARD_TILE_ID = 0
+GROUND_TILE_ID = 2
+CLIMB_TILE_ID = 3
+
+
