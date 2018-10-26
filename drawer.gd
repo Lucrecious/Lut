@@ -22,16 +22,15 @@ class Rect extends Reference:
 		self.color = color
 		self.filled = filled
 	
-var Tile = Game.NavigationMaps.Tile
-func drawpath(nav_map, path, color=Color(1, 0, 0, 1), thickness=1.0):
+func drawpath(map : TileMap, path, color:=Color(1, 0, 0, 1), thickness=1.0):
 	for i in range(path.size() - 1):
-		var p1 = Vector2(Tile.x(path[i]), Tile.y(path[i]))
-		var p2 = Vector2(Tile.x(path[i + 1]), Tile.y(path[i + 1]))
+		var p1 = Vector2(path[i].x, path[i].y)
+		var p2 = Vector2(path[i + 1].x, path[i + 1].y)
 		
 		var middle = Vector2(Game.BLOCK_SIZE / 2, Game.BLOCK_SIZE / 2)
 		
-		var wp1 = nav_map.world_pos(p1) + middle
-		var wp2 = nav_map.world_pos(p2) + middle
+		var wp1 = map.map_to_world(p1) + middle
+		var wp2 = map.map_to_world(p2) + middle
 		
 		drawrect(wp2.x - 5, wp2.y - 5, 10, 10, color, thickness)
 		drawline(wp1, wp2, color, thickness)
