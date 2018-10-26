@@ -11,15 +11,14 @@ const path_timeout = 1000
 
 var path = null
 
-var nav = load("res://src/lut_native/bin/characterastar.gdns").new()
-var graph = load("res://src/lut_native/bin/charactergraph.gdns").new()
-var node = load("res://src/lut_native/bin/characternode.gdns")
+var nav = CharacterAStar.new()
+var graph = CharacterGraph.new()
 	
-var player_info = load("res://src/lut_native/bin/player_info.gdns").new()
-var map_info = load("res://src/lut_native/bin/map_info.gdns").new()
+var player_info = PlayerInfo.new()
+var map_info = MapInfo.new()
 
 func _ready():
-	player_info.air_velocity_rate = 2
+	player_info.air_velocity_rate = 5
 	player_info.jump_height = 3
 		
 	map_info.none = -1
@@ -36,16 +35,18 @@ func _input(event):
 		var startv = map.world_to_map(player.global_position)
 		var goalv = map.world_to_map(drawer.get_global_mouse_position())
 		
-		var start = node.new()
+		var start = CharacterNode.new()
 		start.x = startv.x
 		start.y = startv.y
 		
-		var goal = node.new()
+		var goal = CharacterNode.new()
 		goal.x = goalv.x
 		goal.y = goalv.y
 		
-		path = nav.compute(start, goal)
-
+		path = nav.compute(start, goal, true)
+		
+		#for n in path:
+			#print(n.x, " ", n.y, " ", n.jump)
 
 func _process(delta):	
 	if not path:
