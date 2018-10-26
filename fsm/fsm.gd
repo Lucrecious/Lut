@@ -1,19 +1,17 @@
 extends Reference
 
-const QuickState = preload("res://src/lut/fsm/quick_state.gd")
-const QuickTransition = preload("res://src/lut/fsm/quick_transition.gd")
-const Decorator = preload("res://src/lut/fsm/decorator.gd")
+class_name FSM
 
-var global_state = null
-var state = null
-var object = null
-var delta = null
+var global_state : FSMState = null
+var state : FSMState = null
+var object : Object = null
+var delta : float = 0
 
-var previous_state = null setget , get_previous_state
+var previous_state : FSMState = null setget , get_previous_state
 
-var transitions = {}
+var transitions = {} # Dictionary
 
-func add_transition(from_state, to_state, transition):
+func add_transition(from_state : FSMState, to_state : FSMState, transition : FSMTransition) -> void:
 	if !transitions.has(from_state):
 		transitions[from_state] = {}
 	
@@ -22,23 +20,23 @@ func add_transition(from_state, to_state, transition):
 		
 	transitions[from_state][to_state].append(transition)
 
-func get_transition(from_state):
+func get_transition(from_state : FSMState): # -> null or Dictionary
 	if from_state == null: return null
 	if !transitions.has(from_state): return null
 	
 	for to_state in transitions[from_state]:
-		var ts = transitions[from_state][to_state]
+		var ts : FSMTransition = transitions[from_state][to_state]
 		for transition in ts:
 			if transition.evaluate():
 				return {to_state = to_state, transition = transition}
 	
 	return null
 
-func get_previous_state():
+func get_previous_state() -> FSMState:
 	return previous_state
 
-func transition():
-	var t = get_transition(state)
+func transition() -> bool:
+	var t = get_transition(state) # null or Dictionary
 	if t:
 		t.transition.pre_transition()
 		state(t.to_state)
@@ -47,7 +45,7 @@ func transition():
 	
 	return false
 
-func update(delta):
+func update(delta : float) -> void:
 	self.delta = delta
 	
 	if transition():
@@ -59,7 +57,7 @@ func update(delta):
 	if state:
 		state.main()
 
-func state(new_state):
+func state(new_state : FSMState) -> void:
 	if state:
 		state.on_exit(new_state)
 	
@@ -69,7 +67,7 @@ func state(new_state):
 	if state:
 		state.on_enter(previous_state)
 
-func revert_to_previous_state():
+func revert_to_previous_state() -> void:
 	state(previous_state)
 
 

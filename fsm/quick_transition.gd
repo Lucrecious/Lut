@@ -1,16 +1,18 @@
-extends "res://src/lut/fsm/transition.gd"
+extends FSMTransition
 
-func _init(fsm).(fsm):
+class_name FSMQuickTransition
+
+func _init(fsm : FSM).(fsm):
 	pass
 
-var evaluate_func = funcref(self, "only_false")
+var evaluate_func : FuncRef = funcref(self, "only_false")
 
-func set_evaluation(object, function):
+func set_evaluation(object : Object, function : String) -> FSMQuickTransition:
 	evaluate_func = funcref(object, function)
 	return self
 
-func evaluate():
+func evaluate() -> bool:
 	return evaluate_func.call_func()
 
-func only_false():
+func only_false() -> bool:
 	return false
