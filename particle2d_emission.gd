@@ -1,7 +1,9 @@
 extends Particles2D
 
-func emit():
+class_name Particle2DEmission
+
+func emit() -> void:
 	emitting = true
 
-func no_emit():
+func no_emit() -> void:
 	emitting = false

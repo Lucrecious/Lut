@@ -1,7 +1,9 @@
 extends Node2D
 
-export(float) var time
+class_name TimerFinish
 
-func _ready():
+export(float) var time : float
+
+func _ready() -> void:
 	yield(get_tree().create_timer(time), "timeout")
 	queue_free()
