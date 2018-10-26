@@ -1,5 +1,7 @@
 extends Node
 
+class_name AIController
+
 var actions : Dictionary = {}
 var queued_pressed_actions : Array = []
 var queued_released_actions : Array = []

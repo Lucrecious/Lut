@@ -1,5 +1,7 @@
 extends "res://src/lut/ai/ai.gd"
 
+class_name FollowPathAI
+
 export(NodePath) var MAP_PATH : NodePath
 export(NodePath) var DRAWER : NodePath
 
