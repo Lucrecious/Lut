@@ -1,23 +1,23 @@
 extends "res://src/lut/ai/ai.gd"
 
-export(NodePath) var MAP_PATH
-export(NodePath) var DRAWER
+export(NodePath) var MAP_PATH : NodePath
+export(NodePath) var DRAWER : NodePath
 
-onready var drawer = get_node(DRAWER)
-onready var player = get_parent().get_parent()
-onready var map = get_node(MAP_PATH)
+onready var drawer : Drawer = get_node(DRAWER)
+onready var player : Android = get_parent().get_parent()
+onready var map : TileMap = get_node(MAP_PATH)
 
-const path_timeout = 1000
+const path_timeout : int = 1000
 
-var path = null
+var path : Array = []
 
-var nav = CharacterAStar.new()
-var graph = CharacterGraph.new()
+var nav : CharacterAStar = CharacterAStar.new()
+var graph : CharacterGraph = CharacterGraph.new()
 	
-var player_info = PlayerInfo.new()
-var map_info = MapInfo.new()
+var player_info : PlayerInfo = PlayerInfo.new()
+var map_info : MapInfo = MapInfo.new()
 
-func _ready():
+func _ready() -> void:
 	player_info.air_velocity_rate = 5
 	player_info.jump_height = 3
 		
@@ -28,18 +28,18 @@ func _ready():
 	graph.set_map(map, player_info, map_info)
 	nav.set_graph(graph)
 
-func _input(event):
+func _input(event : InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if !event.doubleclick: return
 		
-		var startv = map.world_to_map(player.global_position)
-		var goalv = map.world_to_map(drawer.get_global_mouse_position())
+		var startv : Vector2 = map.world_to_map(player.global_position)
+		var goalv : Vector2 = map.world_to_map(drawer.get_global_mouse_position())
 		
-		var start = CharacterNode.new()
+		var start : CharacterNode = CharacterNode.new()
 		start.x = startv.x
 		start.y = startv.y
 		
-		var goal = CharacterNode.new()
+		var goal : CharacterNode = CharacterNode.new()
 		goal.x = goalv.x
 		goal.y = goalv.y
 		
@@ -48,8 +48,8 @@ func _input(event):
 		#for n in path:
 			#print(n.x, " ", n.y, " ", n.jump)
 
-func _process(delta):	
-	if not path:
+func _process(delta : float) -> void:
+	if len(path) == 0:
 		return
 	
 	if drawer:

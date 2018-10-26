@@ -1,5 +1,7 @@
 extends Node
 
-export(NodePath) var AI_CONTROLLER
+class_name AI
 
-onready var ai_cont = get_node(AI_CONTROLLER)
+export(NodePath) var AI_CONTROLLER : NodePath
+
+onready var ai_cont : Node = get_node(AI_CONTROLLER)
