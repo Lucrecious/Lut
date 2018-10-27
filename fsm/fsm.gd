@@ -4,6 +4,8 @@ class_name FSM
 
 var global_state : FSMState = null
 var state : FSMState = null
+
+#warning-ignore: unused_class_variable
 var object : Object = null
 var delta : float = 0
 
@@ -57,6 +59,7 @@ func update(delta : float) -> void:
 	if state:
 		state.main()
 
+#warning-ignore: function_conflicts_variable
 func state(new_state : FSMState) -> void:
 	if state:
 		state.on_exit(new_state)

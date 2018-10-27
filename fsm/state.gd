@@ -9,9 +9,11 @@ var fsm
 func _init(fsm):
 	self.fsm = fsm
 
+#warning-ignore: unused_argument
 func on_enter(from_state : FSMState) -> void:
 	pass
 
+#warning-ignore: unused_argument
 func main() -> void:
 	pass
 

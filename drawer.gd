@@ -33,7 +33,7 @@ func drawpath(
 		var p1 : Vector2 = Vector2(path[i].x, path[i].y)
 		var p2 : Vector2 = Vector2(path[i + 1].x, path[i + 1].y)
 		
-		var middle : Vector2 = Vector2(Game.BLOCK_SIZE / 2, Game.BLOCK_SIZE / 2)
+		var middle : Vector2 = Vector2(float(Game.BLOCK_SIZE) / 2.0, float(Game.BLOCK_SIZE) / 2.0)
 		
 		var wp1 : Vector2 = map.map_to_world(p1) + middle
 		var wp2 : Vector2 = map.map_to_world(p2) + middle
@@ -54,14 +54,16 @@ func drawrect(
 		w : float,
 		h : float,
 		color : Color = Color(1, 0, 0, 1),
-		filled: bool = true) -> void:
+		filled : bool = true) -> void:
 	draw_queue.push_front(Rect.new(Rect2(x, y, w, h), color, filled))
 
+#warning-ignore: unused_argument
 func _process(delta : float) -> void:
 	update()
 
 func _draw() -> void:
 	while draw_queue.size() > 0:
+		#warning-ignore: void_assignment
 		var drawable : Reference = draw_queue.pop_front()
 		if drawable is Line:
 			draw_line(
