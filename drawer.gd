@@ -1,4 +1,4 @@
-extends CanvasItem
+extends Node2D
 
 class_name Drawer
 
@@ -7,7 +7,7 @@ var draw_queue : Array = []
 class Line extends Reference:
 	var p1 : Vector2
 	var p2 : Vector2
-	var color : Color 
+	var color : Color
 	var thickness : float
 	func _init(p1 : Vector2, p2 : Vector2, color : Color, thickness : float):
 		self.p1 = p1
@@ -23,7 +23,7 @@ class Rect extends Reference:
 		self.rect = rect
 		self.color = color
 		self.filled = filled
-	
+
 func drawpath(
 		map : TileMap,
 		path : Array,
@@ -32,12 +32,12 @@ func drawpath(
 	for i in range(path.size() - 1):
 		var p1 : Vector2 = Vector2(path[i].x, path[i].y)
 		var p2 : Vector2 = Vector2(path[i + 1].x, path[i + 1].y)
-		
+
 		var middle : Vector2 = Vector2(float(Game.BLOCK_SIZE) / 2.0, float(Game.BLOCK_SIZE) / 2.0)
-		
+
 		var wp1 : Vector2 = map.map_to_world(p1) + middle
 		var wp2 : Vector2 = map.map_to_world(p2) + middle
-		
+
 		drawrect(wp2.x - 5, wp2.y - 5, 10, 10, color, thickness)
 		drawline(wp1, wp2, color, thickness)
 

@@ -1,9 +1,10 @@
-extends "res://src/lut/ai/ai.gd"
+extends AI
 
 class_name FollowPathAI
 
 export(NodePath) var MAP_PATH : NodePath
 export(NodePath) var DRAWER : NodePath
+export(int) var somethin
 
 onready var drawer : Drawer = get_node(DRAWER)
 onready var player : Android = get_parent().get_parent()

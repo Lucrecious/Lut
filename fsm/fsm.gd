@@ -11,6 +11,7 @@ var delta : float = 0
 
 var previous_state : FSMState = null setget , get_previous_state
 
+var skip_next_transition : int = 0
 var transitions = {} # Dictionary
 
 func add_transition(from_state : FSMState, to_state : FSMState, transition : FSMTransition) -> void:
@@ -37,15 +38,23 @@ func get_transition(from_state : FSMState): # -> null or Dictionary
 func get_previous_state() -> FSMState:
 	return previous_state
 
+func skip_next_transition(num : int = 1) -> void:
+	skip_next_transition += num
+
 func transition() -> bool:
 	var t = get_transition(state) # null or Dictionary
-	if t:
-		t.transition.pre_transition()
-		state(t.to_state)
-		t.transition.post_transition()
-		return true
+	if !t:
+		return false
 	
-	return false
+	if skip_next_transition > 0:
+		skip_next_transition -= 1
+		return false
+	
+	t.transition.pre_transition()
+	state(t.to_state)
+	t.transition.post_transition()
+
+	return true
 
 func update(delta : float) -> void:
 	self.delta = delta
