@@ -72,12 +72,12 @@ func update(delta : float) -> void:
 
 #warning-ignore: function_conflicts_variable
 func state(new_state : FSMState) -> void:
-	emit_signal("state_changed", self, state, new_state)
 	if state:
 		state.on_exit(new_state)
 	
 	previous_state = state
 	state = new_state
+	emit_signal("state_changed", self, previous_state, state)
 	
 	if state:
 		state.on_enter(previous_state)
