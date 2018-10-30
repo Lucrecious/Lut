@@ -14,6 +14,8 @@ var previous_state : FSMState = null setget , get_previous_state
 var skip_next_transition : int = 0
 var transitions = {} # Dictionary
 
+signal state_changed(fsm, from_state, to_state)
+
 func add_transition(from_state : FSMState, to_state : FSMState, transition : FSMTransition) -> void:
 	if !transitions.has(from_state):
 		transitions[from_state] = {}
@@ -70,6 +72,7 @@ func update(delta : float) -> void:
 
 #warning-ignore: function_conflicts_variable
 func state(new_state : FSMState) -> void:
+	emit_signal("state_changed", self, state, new_state)
 	if state:
 		state.on_exit(new_state)
 	
