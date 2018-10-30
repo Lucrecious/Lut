@@ -1,6 +1,6 @@
-extends AI
+extends "res://src/lut/ai/ai.gd"
 
-class_name FollowPathAI
+#class_name FollowPathAI
 
 export(NodePath) var MAP_PATH : NodePath
 export(NodePath) var DRAWER : NodePath
@@ -33,9 +33,6 @@ func _ready() -> void:
 	map_info.climb = 3
 	graph.set_map(map, player_info, map_info)
 	nav.set_graph(graph)
-	
-	fsm.add_transition(picker, walk, equal_ground)
-	fsm.add_transition(walk, picker, at_node_x)
 
 func _input(event : InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -72,30 +69,13 @@ func picker_enter(from_state : FSMState) -> void:
 	next = path[index + 1]
 
 
-var walk : FSMQuickState = FSMQuickState.new(fsm)\
-	.add_enter(self, "walk_enter")\
-	.add_exit(self, "walk_exit")
-func walk_enter(from_state : FSMState) -> void:
-	if current.x < next.x:
-		cont.press(cont.RIGHT)
-	else:
-		cont.press(cont.LEFT)
-func walk_exit(to_state : FSMState) -> void:
-	if current.x < next.x:
-		cont.release(cont.RIGHT)
-	else:
-		cont.release(cont.LEFT)
-		
-var equal_ground : FSMQuickTransition = FSMQuickTransition.new(fsm)\
-	.set_evaluation(self, "equal_ground_evaluate")
-func equal_ground_evaluate():
-	return player.is_on_floor() and current.y == next.y
+func press_direction(current, next) -> void:
+	if current.x < next.x: cont.press(cont.RIGHT)
+	else: cont.press(cont.LEFT)
 
-var at_node_x : FSMQuickTransition = FSMQuickTransition.new(fsm)\
-	.set_evaluation(self, "at_node_x_evaluate")
-func at_node_x_evaluate():
-	var px : int = map.world_to_map(player.global_position).x
-	return px == next.x
+func release_directions() -> void:
+	cont.release(cont.RIGHT)
+	cont.release(cont.LEFT)
 
 
 func _process(delta : float) -> void:
