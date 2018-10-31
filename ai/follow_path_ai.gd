@@ -35,6 +35,14 @@ func _ready() -> void:
 	nav.set_graph(graph)
 	
 	fsm.connect("state_changed", self, "update_stream")
+	
+	fsm.add_transition(state_switch, state_walk, same_ground_level)
+	fsm.add_transition(state_switch, state_jump_up, needs_jump)
+	fsm.add_transition(state_switch, state_fall_down, needs_fall)
+	
+	fsm.add_transition(state_walk, state_switch, reached_node)
+	fsm.add_transition(state_jump_up, state_switch, reached_node)
+	fsm.add_transition(state_fall_down, state_switch, reached_node)
 
 func _input(event : InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -51,9 +59,10 @@ func _input(event : InputEvent) -> void:
 		goal.x = goalv.x
 		goal.y = goalv.y
 		
-		path = nav.compute(start, goal, true)
+		path = nav.compute(start, goal, true, false)
 		path_stream = PathStream.new(path)
-		fsm.state(null)
+		
+		fsm.state(state_switch)
 
 var fsm : FSM = FSM.new()
 var path_stream : PathStream
@@ -89,10 +98,6 @@ class PathStream:
 	func finished() -> bool:
 		return index >= len(path)
 
-func update_stream(fsm : FSM, from_state : FSMState, to_state : FSMState) -> void:
-	if path_stream == null: return
-	path_stream.next()
-
 func press_direction(current, next) -> void:
 	if current.x < next.x: cont.press(cont.RIGHT)
 	else: cont.press(cont.LEFT)
@@ -100,6 +105,81 @@ func press_direction(current, next) -> void:
 func release_directions() -> void:
 	cont.release(cont.RIGHT)
 	cont.release(cont.LEFT)
+
+var state_none : FSMQuickState = FSMQuickState.new(fsm)\
+	.add_enter(self, "state_none_enter")
+func state_none_enter(from_state : FSMState) -> void:
+	release_directions()
+	cont.release(cont.UP)
+	cont.release(cont.DOWN)
+	cont.release(cont.JUMP)
+
+var state_switch : FSMQuickState = FSMQuickState.new(fsm)\
+	.add_enter(self, "state_switch_enter")
+func state_switch_enter(from_state : FSMState) -> void:
+	path_stream.next()
+	if (path_stream.peek() == null): fsm.state(state_none)
+
+var state_walk : FSMQuickState = FSMQuickState.new(fsm)\
+	.add_enter(self, "state_walk_enter")
+func state_walk_enter(from_state : FSMState) -> void:
+	release_directions()
+	cont.release(cont.JUMP)
+	press_direction(path_stream.current(), path_stream.peek())
+	
+
+var state_jump_up : FSMQuickState = FSMQuickState.new(fsm)\
+	.add_enter(self, "state_jump_up_enter")
+func state_jump_up_enter(from_state : FSMState) -> void:
+	release_directions()
+	if path_stream.current().x != path_stream.peek().x:
+		press_direction(path_stream.current(), path_stream.peek())
+	cont.press(cont.JUMP)
+
+var state_fall_down : FSMQuickState = FSMQuickState.new(fsm)\
+	.add_enter(self, "state_fall_down_enter")
+func state_fall_down_enter(from_state : FSMState) -> void:
+	cont.release(cont.JUMP)
+	release_directions()
+	if path_stream.current().x != path_stream.peek().x:
+		press_direction(path_stream.current(), path_stream.peek())
+
+var reached_node : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_evaluation(self, "reached_node_evaluation")
+func reached_node_evaluation() -> bool:
+	if path_stream.peek(2) != null && reached_node(path_stream.peek(), path_stream.peek(2)):
+		#path_stream.next()
+		return true
+	
+	return reached_node(path_stream.current(), path_stream.peek())
+
+func reached_node(curr, next) -> bool:
+	var p : Vector2 = map.world_to_map(player.global_position)
+	var reached_x : bool
+	if next.x > curr.x: reached_x = p.x >= next.x
+	else: reached_x = p.x <= next.x
+	
+	var reached_y : bool
+	if next.y < curr.y: reached_y = p.y <= next.y
+	else: reached_y = p.y >= next.y
+	
+	return reached_x && reached_y
+
+var same_ground_level : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_evaluation(self, "same_ground_level_evaluation")
+func same_ground_level_evaluation() -> bool:
+	return player.is_on_floor() and path_stream.current().y == path_stream.peek().y
+
+var needs_jump : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_evaluation(self, "needs_jump_evaluation")
+func needs_jump_evaluation() -> bool:
+	return path_stream.current().y > path_stream.peek().y
+
+var needs_fall : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_evaluation(self, "needs_fall_evaluation")
+func needs_fall_evaluation() -> bool:
+	return path_stream.current().y < path_stream.peek().y
+
 
 
 func _process(delta : float) -> void:
