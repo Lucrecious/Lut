@@ -18,6 +18,17 @@ func press(action) -> void:
 func release(action) -> void:
 	queued_released_actions.push_back(action)
 
+# Action enum Array
+func release_many(actions : Array) -> void:
+	for action in actions:
+		release(action)
+
+func release_all() -> void:
+	release_many([LEFT, RIGHT,
+				  UP, DOWN,
+				  JUMP, ATTACK,
+				  HOLD, DODGE])
+
 # Action enum
 func get_status(action): # -> Status enum
 	if !actions.has(action):

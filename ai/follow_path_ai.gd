@@ -36,13 +36,21 @@ func _ready() -> void:
 	
 	fsm.connect("state_changed", self, "update_stream")
 	
+	var reached_node_and_on_ground : FSMTransition =\
+	FSMAndDecorator.new(fsm, reached_node, player_on_ground)
+	
 	fsm.add_transition(state_switch, state_walk, same_ground_level)
+	fsm.add_transition(state_switch, state_climb, needs_climb)
+	fsm.add_transition(state_switch, state_climb_top, needs_climb_top)
 	fsm.add_transition(state_switch, state_jump_up, needs_jump)
 	fsm.add_transition(state_switch, state_fall_down, needs_fall)
 	
 	fsm.add_transition(state_walk, state_switch, reached_node)
 	fsm.add_transition(state_jump_up, state_switch, reached_node)
 	fsm.add_transition(state_fall_down, state_switch, reached_node)
+
+	fsm.add_transition(state_climb, state_switch, reached_node)
+	fsm.add_transition(state_climb_top, state_switch, reached_node_and_on_ground)
 
 func _input(event : InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -102,17 +110,12 @@ func press_direction(current, next) -> void:
 	if current.x < next.x: cont.press(cont.RIGHT)
 	else: cont.press(cont.LEFT)
 
-func release_directions() -> void:
-	cont.release(cont.RIGHT)
-	cont.release(cont.LEFT)
+# States
 
 var state_none : FSMQuickState = FSMQuickState.new(fsm)\
 	.add_enter(self, "state_none_enter")
 func state_none_enter(from_state : FSMState) -> void:
-	release_directions()
-	cont.release(cont.UP)
-	cont.release(cont.DOWN)
-	cont.release(cont.JUMP)
+	cont.release_all()
 
 var state_switch : FSMQuickState = FSMQuickState.new(fsm)\
 	.add_enter(self, "state_switch_enter")
@@ -123,15 +126,13 @@ func state_switch_enter(from_state : FSMState) -> void:
 var state_walk : FSMQuickState = FSMQuickState.new(fsm)\
 	.add_enter(self, "state_walk_enter")
 func state_walk_enter(from_state : FSMState) -> void:
-	release_directions()
-	cont.release(cont.JUMP)
+	cont.release_all()
 	press_direction(path_stream.current(), path_stream.peek())
-	
 
 var state_jump_up : FSMQuickState = FSMQuickState.new(fsm)\
 	.add_enter(self, "state_jump_up_enter")
 func state_jump_up_enter(from_state : FSMState) -> void:
-	release_directions()
+	cont.release_many([cont.LEFT, cont.RIGHT, cont.UP, cont.DOWN])
 	if path_stream.current().x != path_stream.peek().x:
 		press_direction(path_stream.current(), path_stream.peek())
 	cont.press(cont.JUMP)
@@ -139,10 +140,24 @@ func state_jump_up_enter(from_state : FSMState) -> void:
 var state_fall_down : FSMQuickState = FSMQuickState.new(fsm)\
 	.add_enter(self, "state_fall_down_enter")
 func state_fall_down_enter(from_state : FSMState) -> void:
-	cont.release(cont.JUMP)
-	release_directions()
+	cont.release_all()
 	if path_stream.current().x != path_stream.peek().x:
 		press_direction(path_stream.current(), path_stream.peek())
+
+var state_climb : FSMQuickState = FSMQuickState.new(fsm)\
+	.add_enter(self, "state_climb_enter")
+func state_climb_enter(from_state : FSMState) -> void:
+	cont.release_all()
+	cont.press(cont.UP)
+
+var state_climb_top : FSMQuickState = FSMQuickState.new(fsm)\
+	.add_enter(self, "state_climb_top_enter")
+func state_climb_top_enter(from_state : FSMState) -> void:
+	cont.release_all()
+	cont.press(cont.UP)
+
+
+# Transitions
 
 var reached_node : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 	.set_evaluation(self, "reached_node_evaluation")
@@ -152,6 +167,11 @@ func reached_node_evaluation() -> bool:
 		return true
 	
 	return reached_node(path_stream.current(), path_stream.peek())
+
+var player_on_ground : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_evaluation(self, "player_on_ground_evaluation")
+func player_on_ground_evaluation() -> bool:
+	return player.is_on_floor()
 
 func reached_node(curr, next) -> bool:
 	var p : Vector2 = map.world_to_map(player.global_position)
@@ -179,6 +199,21 @@ var needs_fall : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 	.set_evaluation(self, "needs_fall_evaluation")
 func needs_fall_evaluation() -> bool:
 	return path_stream.current().y < path_stream.peek().y
+
+var needs_climb : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_evaluation(self, "needs_climb_evaluation")
+func needs_climb_evaluation() -> bool:
+	return path_stream.current().y - path_stream.peek().y > 0\
+			&& path_stream.current().x == path_stream.peek().x\
+			&& path_stream.peek().type == map_info.climb
+
+var needs_climb_top : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_evaluation(self, "needs_climb_top_evaluation")
+func needs_climb_top_evaluation() -> bool:
+	return path_stream.current().y - path_stream.peek().y > 0\
+			&& path_stream.current().x == path_stream.peek().x\
+			&& path_stream.current().type == map_info.climb\
+			&& path_stream.peek().type == map_info.air
 
 
 
