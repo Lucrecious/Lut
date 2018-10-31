@@ -33,6 +33,8 @@ func _ready() -> void:
 	map_info.climb = 3
 	graph.set_map(map, player_info, map_info)
 	nav.set_graph(graph)
+	
+	fsm.connect("state_changed", self, "update_stream")
 
 func _input(event : InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -50,24 +52,46 @@ func _input(event : InputEvent) -> void:
 		goal.y = goalv.y
 		
 		path = nav.compute(start, goal, true)
-		index = -1
-		fsm.state(picker)
+		path_stream = PathStream.new(path)
+		fsm.state(null)
 
 var fsm : FSM = FSM.new()
-var index : int
-var current
-var next
-
-var picker : FSMQuickState = FSMQuickState.new(fsm).add_enter(self, "picker_enter")
-func picker_enter(from_state : FSMState) -> void:
-	index += 1
-	if index >= path.size() - 1:
-		fsm.state(null)
-		return
+var path_stream : PathStream
+class PathStream:
+	var index : int
+	var path : Array
 	
-	current = path[index]
-	next = path[index + 1]
+	func _init(path : Array):
+		self.path = path
+		self.index = -1
+	
+	func peek(ahead : int = 1) -> Object:
+		if ahead < 1:
+			printerr("ahead must be greater than 0")
+			return null
 
+		if index + ahead >= len(path): return null
+		
+		return path[index + ahead]
+	
+	func next() -> Object:
+		index += 1
+		return current()
+	
+	func current() -> Object:
+		if finished(): return null
+		if index == -1:
+			printerr("must call next before first current call")
+			return null
+		
+		return path[index]
+	
+	func finished() -> bool:
+		return index >= len(path)
+
+func update_stream(fsm : FSM, from_state : FSMState, to_state : FSMState) -> void:
+	if path_stream == null: return
+	path_stream.next()
 
 func press_direction(current, next) -> void:
 	if current.x < next.x: cont.press(cont.RIGHT)
