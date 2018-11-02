@@ -46,13 +46,17 @@ func _ready() -> void:
 	fsm.add_transition(state_switch, state_climb_bottom, needs_climb_bottom)
 	fsm.add_transition(state_switch, state_climb_down, needs_climb_down)
 	
+	fsm.add_transition(state_switch, state_climb_jump_off_prep, needs_climb_jump_off)
+	fsm.add_transition(state_climb_jump_off_prep, state_jump_off, finish_climb_jump_off_prep)
+	
 	fsm.add_transition(state_switch, state_jump_up, needs_jump)
 	fsm.add_transition(state_switch, state_fall_down, needs_fall)
 	
 	fsm.add_transition(state_walk, state_switch, reached_node)
 	fsm.add_transition(state_jump_up, state_switch, reached_node)
 	fsm.add_transition(state_fall_down, state_switch, reached_node)
-
+	
+	fsm.add_transition(state_jump_off, state_switch, reached_node)
 	fsm.add_transition(state_climb_up, state_switch, reached_node)
 	fsm.add_transition(state_climb_top, state_switch, reached_node_and_on_ground)
 	fsm.add_transition(state_climb_down, state_switch, reached_node)
@@ -75,6 +79,10 @@ func _input(event : InputEvent) -> void:
 		
 		path = nav.compute(start, goal, true, false)
 		path_stream = PathStream.new(path)
+		
+		#print("path")
+		#for n in path:
+		#	print(n.x, " ", n.y, " ", n.jump, " ", n.type == map_info.climb, " ", n.type)
 		
 		fsm.state(state_switch)
 
@@ -113,8 +121,10 @@ class PathStream:
 		return index >= len(path)
 
 func press_direction(current, next) -> void:
+	#var px : int = map.world_to_map(player.global_position).x
 	if current.x < next.x: cont.press(cont.RIGHT)
-	else: cont.press(cont.LEFT)
+	elif current.x > next.x: cont.press(cont.LEFT)
+	else: cont.release_many([cont.RIGHT, cont.LEFT])
 
 # States
 
@@ -139,16 +149,14 @@ var state_jump_up : FSMQuickState = FSMQuickState.new(fsm)\
 	.add_enter(self, "state_jump_up_enter")
 func state_jump_up_enter(from_state : FSMState) -> void:
 	cont.release_many([cont.LEFT, cont.RIGHT, cont.UP, cont.DOWN])
-	if path_stream.current().x != path_stream.peek().x:
-		press_direction(path_stream.current(), path_stream.peek())
+	press_direction(path_stream.current(), path_stream.peek())
 	cont.press(cont.JUMP)
 
 var state_fall_down : FSMQuickState = FSMQuickState.new(fsm)\
 	.add_enter(self, "state_fall_down_enter")
 func state_fall_down_enter(from_state : FSMState) -> void:
 	cont.release_all()
-	if path_stream.current().x != path_stream.peek().x:
-		press_direction(path_stream.current(), path_stream.peek())
+	press_direction(path_stream.current(), path_stream.peek())
 
 var state_climb_up : FSMQuickState = FSMQuickState.new(fsm)\
 	.add_enter(self, "state_climb_up_enter")
@@ -173,6 +181,19 @@ var state_climb_bottom : FSMQuickState = FSMQuickState.new(fsm)\
 func state_climb_bottom_enter(from_state : FSMState) -> void:
 	cont.release_all()
 	cont.press(cont.DOWN)
+
+var state_climb_jump_off_prep : FSMQuickState = FSMQuickState.new(fsm)\
+	.add_enter(self, "state_climb_jump_off_prep_enter")
+func state_climb_jump_off_prep_enter(from_state : FSMState) -> void:
+	cont.release_all()
+	cont.press(cont.UP)
+
+var state_jump_off : FSMQuickState = FSMQuickState.new(fsm)\
+	.add_enter(self, "state_jump_off_enter")
+func state_jump_off_enter(from_state : FSMState) -> void:
+	cont.release_all()
+	cont.press(cont.JUMP)
+	press_direction(path_stream.current(), path_stream.peek())
 
 
 # Transitions
@@ -245,7 +266,23 @@ var needs_climb_bottom : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 func needs_climb_bottom_evaluation() -> bool:
 	return path_stream.peek().y - path_stream.current().y > 0\
 			&& path_stream.current().x == path_stream.peek().x\
+			&& path_stream.current().type == map_info.climb\
 			&& map.get_cell(path_stream.peek().x, path_stream.peek().y + 1) == map_info.ground
+
+var needs_climb_jump_off : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_evaluation(self, "needs_climb_jump_off_evaluation")
+func needs_climb_jump_off_evaluation() -> bool:
+	return path_stream.current().x != path_stream.peek().x\
+			&& path_stream.current().type == map_info.climb
+
+var finish_climb_jump_off_prep : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_evaluation(self, "finish_climb_jump_off_prep_evaluation")
+func finish_climb_jump_off_prep_evaluation() -> bool:
+	var py : int = map.world_to_map(player.global_position).y
+	return py < path_stream.current().y - 1
+
+var always_true : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_to_always_true()
 
 
 
