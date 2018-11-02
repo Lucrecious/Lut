@@ -40,8 +40,12 @@ func _ready() -> void:
 	FSMAndDecorator.new(fsm, reached_node, player_on_ground)
 	
 	fsm.add_transition(state_switch, state_walk, same_ground_level)
-	fsm.add_transition(state_switch, state_climb, needs_climb)
+	
+	fsm.add_transition(state_switch, state_climb_up, needs_climb_up)
 	fsm.add_transition(state_switch, state_climb_top, needs_climb_top)
+	fsm.add_transition(state_switch, state_climb_bottom, needs_climb_bottom)
+	fsm.add_transition(state_switch, state_climb_down, needs_climb_down)
+	
 	fsm.add_transition(state_switch, state_jump_up, needs_jump)
 	fsm.add_transition(state_switch, state_fall_down, needs_fall)
 	
@@ -49,8 +53,10 @@ func _ready() -> void:
 	fsm.add_transition(state_jump_up, state_switch, reached_node)
 	fsm.add_transition(state_fall_down, state_switch, reached_node)
 
-	fsm.add_transition(state_climb, state_switch, reached_node)
+	fsm.add_transition(state_climb_up, state_switch, reached_node)
 	fsm.add_transition(state_climb_top, state_switch, reached_node_and_on_ground)
+	fsm.add_transition(state_climb_down, state_switch, reached_node)
+	fsm.add_transition(state_climb_bottom, state_switch, reached_node_and_on_ground)
 
 func _input(event : InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -144,9 +150,9 @@ func state_fall_down_enter(from_state : FSMState) -> void:
 	if path_stream.current().x != path_stream.peek().x:
 		press_direction(path_stream.current(), path_stream.peek())
 
-var state_climb : FSMQuickState = FSMQuickState.new(fsm)\
-	.add_enter(self, "state_climb_enter")
-func state_climb_enter(from_state : FSMState) -> void:
+var state_climb_up : FSMQuickState = FSMQuickState.new(fsm)\
+	.add_enter(self, "state_climb_up_enter")
+func state_climb_up_enter(from_state : FSMState) -> void:
 	cont.release_all()
 	cont.press(cont.UP)
 
@@ -155,6 +161,18 @@ var state_climb_top : FSMQuickState = FSMQuickState.new(fsm)\
 func state_climb_top_enter(from_state : FSMState) -> void:
 	cont.release_all()
 	cont.press(cont.UP)
+
+var state_climb_down : FSMQuickState = FSMQuickState.new(fsm)\
+	.add_enter(self, "state_climb_down_enter")
+func state_climb_down_enter(from_state : FSMState) -> void:
+	cont.release_all()
+	cont.press(cont.DOWN)
+
+var state_climb_bottom : FSMQuickState = FSMQuickState.new(fsm)\
+	.add_enter(self, "state_climb_bottom_enter")
+func state_climb_bottom_enter(from_state : FSMState) -> void:
+	cont.release_all()
+	cont.press(cont.DOWN)
 
 
 # Transitions
@@ -200,9 +218,9 @@ var needs_fall : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 func needs_fall_evaluation() -> bool:
 	return path_stream.current().y < path_stream.peek().y
 
-var needs_climb : FSMQuickTransition = FSMQuickTransition.new(fsm)\
-	.set_evaluation(self, "needs_climb_evaluation")
-func needs_climb_evaluation() -> bool:
+var needs_climb_up : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_evaluation(self, "needs_climb_up_evaluation")
+func needs_climb_up_evaluation() -> bool:
 	return path_stream.current().y - path_stream.peek().y > 0\
 			&& path_stream.current().x == path_stream.peek().x\
 			&& path_stream.peek().type == map_info.climb
@@ -214,6 +232,20 @@ func needs_climb_top_evaluation() -> bool:
 			&& path_stream.current().x == path_stream.peek().x\
 			&& path_stream.current().type == map_info.climb\
 			&& path_stream.peek().type == map_info.air
+
+var needs_climb_down : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_evaluation(self, "needs_climb_down_evaluation")
+func needs_climb_down_evaluation() -> bool:
+	return path_stream.peek().y - path_stream.current().y > 0\
+			&& path_stream.current().x == path_stream.peek().x\
+			&& path_stream.peek().type == map_info.climb
+
+var needs_climb_bottom : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_evaluation(self, "needs_climb_bottom_evaluation")
+func needs_climb_bottom_evaluation() -> bool:
+	return path_stream.peek().y - path_stream.current().y > 0\
+			&& path_stream.current().x == path_stream.peek().x\
+			&& map.get_cell(path_stream.peek().x, path_stream.peek().y + 1) == map_info.ground
 
 
 
