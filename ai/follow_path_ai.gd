@@ -279,7 +279,7 @@ var finish_climb_jump_off_prep : FSMQuickTransition = FSMQuickTransition.new(fsm
 	.set_evaluation(self, "finish_climb_jump_off_prep_evaluation")
 func finish_climb_jump_off_prep_evaluation() -> bool:
 	var py : int = map.world_to_map(player.global_position).y
-	return py < path_stream.current().y - 1
+	return py < path_stream.current().y - 1 or player.is_on_floor()
 
 var always_true : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 	.set_to_always_true()
