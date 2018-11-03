@@ -31,6 +31,7 @@ func _ready() -> void:
 	map_info.air = 0
 	map_info.ground = 2
 	map_info.climb = 3
+	map_info.wall = 4
 	graph.set_map(map, player_info, map_info)
 	nav.set_graph(graph)
 	
