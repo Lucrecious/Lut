@@ -46,6 +46,9 @@ func _ready() -> void:
 	
 	fsm.add_transition(state_switch, state_walk, same_ground_level)
 	
+	fsm.add_transition(state_switch, state_prep_jump_across_walls, needs_jump_across_walls)
+	fsm.add_transition(state_prep_jump_across_walls, state_jump_across_walls, always_true)
+	
 	fsm.add_transition(state_switch, state_wall_jump, needs_wall_jump_or_on_wall_jump_node)
 	fsm.add_transition(state_wall_jump, state_wait, needs_wall_jump)
 	fsm.add_transition(state_wait, state_wall_jump, not_reached_wall_node)
@@ -65,6 +68,7 @@ func _ready() -> void:
 	fsm.add_transition(state_jump_up, state_switch, reached_node)
 	fsm.add_transition(state_fall_down, state_switch, reached_node)
 	
+	fsm.add_transition(state_jump_across_walls, state_switch, reached_wall_node)
 	fsm.add_transition(state_wait, state_switch, reached_wall_node)
 	
 	fsm.add_transition(state_jump_off, state_switch, reached_node)
@@ -215,16 +219,33 @@ func vwall_direction(x : float, y : float) -> int:
 	
 	return 0
 
-func wall_direction(current) -> int:
-	return vwall_direction(current.x, current.y)
+func wall_direction(node) -> int:
+	return vwall_direction(node.x, node.y)
+
+func press_wall_direction(node) -> void:
+	var wall_dir : int = wall_direction(node)
+	if wall_dir < 0: cont.press(cont.LEFT)
+	elif wall_dir > 0: cont.press(cont.RIGHT)
 
 var state_wall_jump : FSMQuickState = FSMQuickState.new(fsm)\
 	.add_enter(self, "state_wall_jump_enter")
 func state_wall_jump_enter(from_state : FSMState) -> void:
 	cont.release_all()
-	if wall_direction(path_stream.current()) < 0: cont.press(cont.LEFT)
-	else: cont.press(cont.RIGHT)
+	press_wall_direction(path_stream.current())
 	cont.press(cont.JUMP)
+
+var state_prep_jump_across_walls : FSMQuickState = FSMQuickState.new(fsm)\
+	.add_enter(self, "state_prep_jump_across_walls_enter")
+func state_prep_jump_across_walls_enter(from_state : FSMState) -> void:
+	cont.release_all()
+	press_wall_direction(path_stream.current())
+	cont.press(cont.JUMP)
+
+var state_jump_across_walls : FSMQuickState = FSMQuickState.new(fsm)\
+	.add_enter(self, "state_jump_across_walls_enter")
+func state_jump_across_walls_enter(from_state : FSMState) -> void:
+	cont.release_many([cont.LEFT, cont.RIGHT])
+	press_wall_direction(path_stream.peek())
 
 
 # Transitions
@@ -347,6 +368,20 @@ func on_wall_jump_node_evaluation() -> bool:
 	#var ppos : Vector2 = map.world_to_map(player.global_position)
 	return wall_direction(current) and next_wall_dir#\
 			#&& ppos.x == current.x && ppos.y == current.y 
+
+var needs_jump_across_walls : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_evaluation(self, "needs_jump_across_walls_evaluation")
+func needs_jump_across_walls_evaluation() -> bool:
+	var current = path_stream.current()
+	var next = path_stream.peek()
+	if next.x == current.x: return false
+	if current.y < next.y: return false
+	
+	var curr_wall_dir : int = wall_direction(current)
+	var next_wall_dir : int = wall_direction(next)
+	
+	if !curr_wall_dir or !next_wall_dir: return false
+	return curr_wall_dir != next_wall_dir
 
 var always_true : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 	.set_to_always_true()
