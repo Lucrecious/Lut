@@ -327,18 +327,26 @@ func finish_climb_jump_off_prep_evaluation() -> bool:
 var needs_wall_jump : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 	.set_evaluation(self, "needs_wall_jump_evaluation")
 func needs_wall_jump_evaluation() -> bool:
-	if path_stream.current().x != path_stream.peek().x: return false
-	
-	return wall_direction(path_stream.current()) != 0\
-			&& (player.is_on_floor() || player.wall_sliding)
+	var current = path_stream.current()
+	var next = path_stream.peek()
+	if current.y < next.y: return false
+	return wall_direction(current) and wall_direction(next)\
+			and (player.is_on_floor() || player.wall_sliding)
 
 var on_wall_jump_node : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 	.set_evaluation(self, "on_wall_jump_node_evaluation")
 func on_wall_jump_node_evaluation() -> bool:
-	var ppos : Vector2 = map.world_to_map(player.global_position)
 	var current = path_stream.current()
-	return wall_direction(current) != 0\
-			&& ppos.x == current.x && ppos.y == current.y 
+	var next = path_stream.peek()
+	if current.y < next.y: return false
+	
+	#var peek2 = path_stream.peek(2)
+	var next_wall_dir = wall_direction(next)
+	#if next_wall_dir and wall_direction(peek2): return true
+	
+	#var ppos : Vector2 = map.world_to_map(player.global_position)
+	return wall_direction(current) and next_wall_dir#\
+			#&& ppos.x == current.x && ppos.y == current.y 
 
 var always_true : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 	.set_to_always_true()
