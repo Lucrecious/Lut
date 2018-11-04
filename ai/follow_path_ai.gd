@@ -41,10 +41,14 @@ func _ready() -> void:
 	var needs_wall_jump_or_on_wall_jump_node : FSMTransition =\
 	FSMOrDecorator.new(fsm, needs_wall_jump, on_wall_jump_node)
 	
+	var not_reached_wall_node : FSMTransition =\
+	FSMInvertDecorator.new(fsm, reached_wall_node)
+	
 	fsm.add_transition(state_switch, state_walk, same_ground_level)
 	
 	fsm.add_transition(state_switch, state_wall_jump, needs_wall_jump_or_on_wall_jump_node)
-	fsm.add_transition(state_wall_jump, state_wall_jump, needs_wall_jump)
+	fsm.add_transition(state_wall_jump, state_wait, needs_wall_jump)
+	fsm.add_transition(state_wait, state_wall_jump, not_reached_wall_node)
 	
 	fsm.add_transition(state_switch, state_climb_up, needs_climb_up)
 	fsm.add_transition(state_switch, state_climb_top, needs_climb_top)
@@ -61,7 +65,7 @@ func _ready() -> void:
 	fsm.add_transition(state_jump_up, state_switch, reached_node)
 	fsm.add_transition(state_fall_down, state_switch, reached_node)
 	
-	fsm.add_transition(state_wall_jump, state_switch, reached_node_above)
+	fsm.add_transition(state_wait, state_switch, reached_wall_node)
 	
 	fsm.add_transition(state_jump_off, state_switch, reached_node)
 	fsm.add_transition(state_climb_up, state_switch, reached_node)
@@ -135,6 +139,8 @@ func press_direction(current, next) -> void:
 
 # States
 
+var state_wait : FSMQuickState = FSMQuickState.new(fsm)
+
 var state_none : FSMQuickState = FSMQuickState.new(fsm)\
 	.add_enter(self, "state_none_enter")
 func state_none_enter(from_state : FSMState) -> void:
@@ -143,6 +149,7 @@ func state_none_enter(from_state : FSMState) -> void:
 var state_switch : FSMQuickState = FSMQuickState.new(fsm)\
 	.add_enter(self, "state_switch_enter")
 func state_switch_enter(from_state : FSMState) -> void:
+	#print("enter state_switch")
 	path_stream.next()
 	if (path_stream.peek() == null): fsm.state(state_none)
 
@@ -214,7 +221,6 @@ func wall_direction(current) -> int:
 var state_wall_jump : FSMQuickState = FSMQuickState.new(fsm)\
 	.add_enter(self, "state_wall_jump_enter")
 func state_wall_jump_enter(from_state : FSMState) -> void:
-	print("enter_wall_jump")
 	cont.release_all()
 	if wall_direction(path_stream.current()) < 0: cont.press(cont.LEFT)
 	else: cont.press(cont.RIGHT)
@@ -249,13 +255,13 @@ func reached_node_evaluation() -> bool:
 	
 	return reached_node(path_stream.current(), path_stream.peek())
 
-var reached_node_above : FSMQuickTransition = FSMQuickTransition.new(fsm)\
-	.set_evaluation(self, "reached_node_above_evaluation")
-func reached_node_above_evaluation() -> bool:
-	var current = path_stream.current()
-	var next = path_stream.peek()
-	return vreached_node(current.x, current.y, next.x, next.y - 1)
-
+var reached_wall_node : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_evaluation(self, "reached_wall_node_evaluation")
+func reached_wall_node_evaluation() -> bool:
+	var reached : bool = reached_node(path_stream.peek(), path_stream.peek())
+	#print(reached, " ", player.wall_sliding)
+	return reached && player.wall_sliding
+	
 var player_on_ground : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 	.set_evaluation(self, "player_on_ground_evaluation")
 func player_on_ground_evaluation() -> bool:
@@ -321,6 +327,8 @@ func finish_climb_jump_off_prep_evaluation() -> bool:
 var needs_wall_jump : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 	.set_evaluation(self, "needs_wall_jump_evaluation")
 func needs_wall_jump_evaluation() -> bool:
+	if path_stream.current().x != path_stream.peek().x: return false
+	
 	return wall_direction(path_stream.current()) != 0\
 			&& (player.is_on_floor() || player.wall_sliding)
 
