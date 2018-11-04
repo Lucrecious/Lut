@@ -386,8 +386,6 @@ func needs_jump_across_walls_evaluation() -> bool:
 var always_true : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 	.set_to_always_true()
 
-
-
 func _process(delta : float) -> void:
 	if len(path) == 0:
 		return
