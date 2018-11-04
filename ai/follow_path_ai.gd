@@ -360,14 +360,8 @@ func on_wall_jump_node_evaluation() -> bool:
 	var current = path_stream.current()
 	var next = path_stream.peek()
 	if current.y < next.y: return false
-	
-	#var peek2 = path_stream.peek(2)
-	var next_wall_dir = wall_direction(next)
-	#if next_wall_dir and wall_direction(peek2): return true
-	
-	#var ppos : Vector2 = map.world_to_map(player.global_position)
-	return wall_direction(current) and next_wall_dir#\
-			#&& ppos.x == current.x && ppos.y == current.y 
+
+	return wall_direction(current) and wall_direction(next)
 
 var needs_jump_across_walls : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 	.set_evaluation(self, "needs_jump_across_walls_evaluation")
