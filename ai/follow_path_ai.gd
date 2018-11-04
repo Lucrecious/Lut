@@ -4,12 +4,10 @@ extends "res://src/lut/ai/ai.gd"
 
 export(NodePath) var MAP_PATH : NodePath
 export(NodePath) var DRAWER : NodePath
-export(NodePath) var CONTROLLER : NodePath
 
 onready var drawer : Drawer = get_node(DRAWER)
 onready var player : Android = get_parent().get_parent()
 onready var map : TileMap = get_node(MAP_PATH)
-onready var cont : AIController = get_node(CONTROLLER)
 
 const path_timeout : int = 1000
 
@@ -40,7 +38,13 @@ func _ready() -> void:
 	var reached_node_and_on_ground : FSMTransition =\
 	FSMAndDecorator.new(fsm, reached_node, player_on_ground)
 	
+	var needs_wall_jump_or_on_wall_jump_node : FSMTransition =\
+	FSMOrDecorator.new(fsm, needs_wall_jump, on_wall_jump_node)
+	
 	fsm.add_transition(state_switch, state_walk, same_ground_level)
+	
+	fsm.add_transition(state_switch, state_wall_jump, needs_wall_jump_or_on_wall_jump_node)
+	fsm.add_transition(state_wall_jump, state_wall_jump, needs_wall_jump)
 	
 	fsm.add_transition(state_switch, state_climb_up, needs_climb_up)
 	fsm.add_transition(state_switch, state_climb_top, needs_climb_top)
@@ -56,6 +60,8 @@ func _ready() -> void:
 	fsm.add_transition(state_walk, state_switch, reached_node)
 	fsm.add_transition(state_jump_up, state_switch, reached_node)
 	fsm.add_transition(state_fall_down, state_switch, reached_node)
+	
+	fsm.add_transition(state_wall_jump, state_switch, reached_node_above)
 	
 	fsm.add_transition(state_jump_off, state_switch, reached_node)
 	fsm.add_transition(state_climb_up, state_switch, reached_node)
@@ -196,8 +202,43 @@ func state_jump_off_enter(from_state : FSMState) -> void:
 	cont.press(cont.JUMP)
 	press_direction(path_stream.current(), path_stream.peek())
 
+func vwall_direction(x : float, y : float) -> int:
+	if map.get_cell(x + 1, y) == map_info.wall: return 1;
+	if map.get_cell(x - 1, y)  == map_info.wall: return -1;
+	
+	return 0
+
+func wall_direction(current) -> int:
+	return vwall_direction(current.x, current.y)
+
+var state_wall_jump : FSMQuickState = FSMQuickState.new(fsm)\
+	.add_enter(self, "state_wall_jump_enter")
+func state_wall_jump_enter(from_state : FSMState) -> void:
+	print("enter_wall_jump")
+	cont.release_all()
+	if wall_direction(path_stream.current()) < 0: cont.press(cont.LEFT)
+	else: cont.press(cont.RIGHT)
+	cont.press(cont.JUMP)
+
 
 # Transitions
+
+func reached_node(curr, next) -> bool:
+	return vreached_node(curr.x, curr.y, next.x, next.y)
+
+func vreached_node(x : float, y : float, nx : float, ny : float) -> bool:
+	var p : Vector2 = map.world_to_map(player.global_position)
+	var reached_x : bool
+	if nx > x: reached_x = p.x >= nx
+	elif nx < x: reached_x = p.x <= nx
+	else: reached_x = p.x == nx
+	
+	var reached_y : bool
+	if ny < y: reached_y = p.y <= ny
+	elif ny > y: reached_y = p.y >= ny
+	else: reached_y = p.y == ny
+	
+	return reached_x && reached_y
 
 var reached_node : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 	.set_evaluation(self, "reached_node_evaluation")
@@ -208,22 +249,17 @@ func reached_node_evaluation() -> bool:
 	
 	return reached_node(path_stream.current(), path_stream.peek())
 
+var reached_node_above : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_evaluation(self, "reached_node_above_evaluation")
+func reached_node_above_evaluation() -> bool:
+	var current = path_stream.current()
+	var next = path_stream.peek()
+	return vreached_node(current.x, current.y, next.x, next.y - 1)
+
 var player_on_ground : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 	.set_evaluation(self, "player_on_ground_evaluation")
 func player_on_ground_evaluation() -> bool:
 	return player.is_on_floor()
-
-func reached_node(curr, next) -> bool:
-	var p : Vector2 = map.world_to_map(player.global_position)
-	var reached_x : bool
-	if next.x > curr.x: reached_x = p.x >= next.x
-	else: reached_x = p.x <= next.x
-	
-	var reached_y : bool
-	if next.y < curr.y: reached_y = p.y <= next.y
-	else: reached_y = p.y >= next.y
-	
-	return reached_x && reached_y
 
 var same_ground_level : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 	.set_evaluation(self, "same_ground_level_evaluation")
@@ -281,6 +317,20 @@ var finish_climb_jump_off_prep : FSMQuickTransition = FSMQuickTransition.new(fsm
 func finish_climb_jump_off_prep_evaluation() -> bool:
 	var py : int = map.world_to_map(player.global_position).y
 	return py < path_stream.current().y - 1 or player.is_on_floor()
+
+var needs_wall_jump : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_evaluation(self, "needs_wall_jump_evaluation")
+func needs_wall_jump_evaluation() -> bool:
+	return wall_direction(path_stream.current()) != 0\
+			&& (player.is_on_floor() || player.wall_sliding)
+
+var on_wall_jump_node : FSMQuickTransition = FSMQuickTransition.new(fsm)\
+	.set_evaluation(self, "on_wall_jump_node_evaluation")
+func on_wall_jump_node_evaluation() -> bool:
+	var ppos : Vector2 = map.world_to_map(player.global_position)
+	var current = path_stream.current()
+	return wall_direction(current) != 0\
+			&& ppos.x == current.x && ppos.y == current.y 
 
 var always_true : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 	.set_to_always_true()
