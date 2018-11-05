@@ -29,7 +29,7 @@ func _ready() -> void:
 	map_info.air = 0
 	map_info.ground = 2
 	map_info.climb = 3
-	map_info.wall = 4
+	map_info.wall = 1
 	graph.set_map(map, player_info, map_info)
 	nav.set_graph(graph)
 	
@@ -267,20 +267,20 @@ func vreached_node(x : float, y : float, nx : float, ny : float) -> bool:
 	
 	return reached_x && reached_y
 
+func reached_next_node() -> bool:
+	return path_stream.peek(2) != null and reached_node(path_stream.peek(), path_stream.peek(2))
+
 var reached_node : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 	.set_evaluation(self, "reached_node_evaluation")
 func reached_node_evaluation() -> bool:
-	if path_stream.peek(2) != null && reached_node(path_stream.peek(), path_stream.peek(2)):
-		#path_stream.next()
-		return true
-	
+	if reached_next_node(): return true
 	return reached_node(path_stream.current(), path_stream.peek())
 
 var reached_wall_node : FSMQuickTransition = FSMQuickTransition.new(fsm)\
 	.set_evaluation(self, "reached_wall_node_evaluation")
 func reached_wall_node_evaluation() -> bool:
+	if reached_next_node(): return true
 	var reached : bool = reached_node(path_stream.peek(), path_stream.peek())
-	#print(reached, " ", player.wall_sliding)
 	return reached && player.wall_sliding
 	
 var player_on_ground : FSMQuickTransition = FSMQuickTransition.new(fsm)\
